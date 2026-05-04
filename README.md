@@ -1,11 +1,11 @@
-# HRE4M1 - Unit Dashboards
+# HRE4M1 - Unit 1 Dashboard
 
-React/Vite app for HRE4M1 unit dashboards.
+React/Vite app for the HRE4M1 Unit 1 dashboard and study companion.
 
 ## Current Scope
 
 - Unit 1 dashboard
-- Additional units will be added later
+- Additional unit dashboards will be added later in this same project
 
 ## Development
 
