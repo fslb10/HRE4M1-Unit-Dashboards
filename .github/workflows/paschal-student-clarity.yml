@@ -1,0 +1,32 @@
+name: Paschal student clarity checks
+on:
+  push:
+    branches: [codex/paschal-student-clarity-20260929]
+    paths:
+      - 'activities/paschal-mystery/**'
+      - '.github/workflows/paschal-student-clarity.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  classroom-browser-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated browser-test dependency
+        run: npm install --no-save --package-lock=false playwright@1.55.0
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Test student pathways and legacy progress
+        run: node activities/paschal-mystery/student-clarity.browser.cjs
+      - name: Save test results and rendered pages
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: paschal-student-clarity-checks
+          path: test-output/
+          retention-days: 3
