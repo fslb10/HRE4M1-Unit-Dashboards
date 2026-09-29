@@ -15,7 +15,12 @@ function bindRoom(){legacyBindRoom();
  $$('#room textarea[data-min]').forEach(el=>el.addEventListener('input',()=>{refreshStudentCounters();clearInlineIssue();}));
  $$('#room [data-map]').forEach(el=>el.addEventListener('change',clearInlineIssue));refreshStudentCounters();
 }
-function clearInlineIssue(){document.querySelectorAll('[data-inline-task-error]').forEach(e=>e.remove());}
+function clearInlineIssue(){
+ if(state)delete feedback[state.stage];
+ document.querySelectorAll('[data-inline-task-error]').forEach(e=>e.remove());
+ document.getElementById('roomFeedback')?.remove();
+ document.querySelectorAll('#room [aria-invalid="true"]').forEach(e=>e.removeAttribute('aria-invalid'));
+}
 function showTaskIssue(message,target){feedback[state.stage]={type:'error',message};renderRoom(false);const control=target?document.querySelector(target):$('#roomTitle');if(control){const note=document.createElement('p');note.dataset.inlineTaskError='1';note.className='notice error';note.setAttribute('role','status');note.textContent=message;const container=control.closest('.field')||control.closest('.event-choices')||control.closest('.record')||control;container.insertAdjacentElement('afterend',note);control.setAttribute('aria-invalid','true');control.focus({preventScroll:true});control.scrollIntoView({behavior:'smooth',block:'center'});}else $('#roomFeedback')?.scrollIntoView({behavior:'smooth',block:'center'});}
 function finishStudentStep(){const n=state.stage;if(!state.done.includes(n))state.done.push(n);writeState();chime();nextStage();toast(n>=1&&n<=4?'Seal '+['I','II','III','IV'][n-1]+' opened · digit '+state.digits[n-1]:'Final screen unlocked. Prepare your group defence.');}
 function complete(){const n=state.stage;if(![2,3,6].includes(n))return legacyComplete();if(state.done.includes(n))return nextStage();ensureClarityState();const s=SCENARIOS[state.event];
