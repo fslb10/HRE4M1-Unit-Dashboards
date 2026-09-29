@@ -1,0 +1,83 @@
+'use strict';
+const STORAGE_KEY='hre4m.paschal.archive.v1';
+const TEACHER_KEY='hre4m.paschal.class.v1';
+const VERSION=1;
+const $=s=>document.querySelector(s);
+const $$=s=>Array.from(document.querySelectorAll(s));
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const words=s=>String(s??'').trim().split(/\s+/).filter(Boolean).length;
+const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
+const ICONS={
+ lock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>',
+ unlock:'<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 7.8-1.2M12 14v3"/>',
+ branch:'<path d="M5 20 18 5M9 15C4 14 4 10 5 8c4 0 6 2 6 5M13 11c-1-5 1-8 4-9 2 3 2 6-1 8M11 13c5-2 8-1 9 2-3 3-6 3-10 1"/>',
+ cross:'<path d="M10 2h4v6h6v4h-6v10h-4V12H4V8h6z"/>',
+ tomb:'<path d="M2 20h20M6 20v-7a7 7 0 0 1 14 0v7M10 20v-7a3 3 0 0 1 6 0v7M13 2V0M4 4 2 2M21 4l2-2"/><circle cx="5" cy="17" r="3"/>',
+ rise:'<path d="M12 17V3m-5 5 5-5 5 5M3 21h18M5 17c-4-1-3-6 1-6M19 17c4-1 3-6-1-6"/>',
+ arrow:'<path d="M4 12h16m-6-6 6 6-6 6"/>',
+ check:'<path d="m5 12 4 4L19 6"/>',
+ book:'<path d="M12 5v16M3 4c4-1 6 0 9 2 3-2 5-3 9-2v15c-4-1-6 0-9 2-3-2-5-3-9-2z"/>',
+ clock:'<circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/>',
+ users:'<circle cx="9" cy="7" r="3"/><path d="M3 21v-4a6 6 0 0 1 12 0v4M16 4a3 3 0 0 1 0 6m1 3a5 5 0 0 1 4 5v3"/>',
+ screen:'<rect x="2" y="3" width="20" height="14" rx="2"/><path d="M12 17v4m-5 0h10"/>',
+ close:'<path d="m6 6 12 12M18 6 6 18"/>',
+ help:'<circle cx="12" cy="12" r="9"/><path d="M9 8a3 3 0 0 1 6 1c0 2-3 2-3 5m0 3h.01"/>',
+ file:'<path d="M5 2h9l5 5v15H5zm9 0v6h5M8 12h8m-8 4h8"/>',
+ download:'<path d="M12 3v12m-5-5 5 5 5-5M4 15v6h16v-6"/>',
+ chevron:'<path d="m8 4 8 8-8 8"/>',
+ volume:'<path d="M4 9h4l5-5v16l-5-5H4zm12-2a8 8 0 0 1 0 10m3-13a12 12 0 0 1 0 16"/>',
+ expand:'<path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/>',
+ share:'<circle cx="18" cy="4" r="3"/><circle cx="5" cy="12" r="3"/><circle cx="18" cy="20" r="3"/><path d="m8 10 7-4m-7 8 7 4"/>',
+ spark:'<path d="m12 2 2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/>',
+ pause:'<path d="M8 5v14m8-14v14"/>',
+ play:'<path d="m8 4 12 8-12 8z"/>',
+ reset:'<path d="M3 10a9 9 0 1 1 2 8M3 3v7h7"/>'
+};
+const icon=(n,small=false)=>`<svg class="icon ${small?'small-icon':''}" viewBox="0 0 24 24" aria-hidden="true">${ICONS[n]||ICONS.file}</svg>`;
+function randomDigits(){const a=new Uint8Array(4);if(globalThis.crypto?.getRandomValues)crypto.getRandomValues(a);else a.forEach((_,i)=>a[i]=Math.floor(Math.random()*255));return Array.from(a,n=>String(1+n%9));}
+function shuffle(a){a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+let storageOK=true;
+function loadJSON(key,fallback){try{const raw=localStorage.getItem(key);return raw?JSON.parse(raw):fallback;}catch{storageOK=false;return fallback;}}
+function validState(s){
+ if(!s||s.version!==VERSION||!EVENT_NAMES.includes(s.event)||typeof s.team!=='string'||s.team.length>60)return false;
+ if(!Array.isArray(s.done)||s.done.length>8||!s.done.every((n,i)=>n===i))return false;
+ if(!Number.isInteger(s.stage)||s.stage<0||s.stage>Math.min(7,s.done.length))return false;
+ if(!Array.isArray(s.digits)||s.digits.length!==4||!s.digits.every(d=>typeof d==='string'&&/^[1-9]$/.test(d)))return false;
+ if(!s.forms||typeof s.forms!=='object'||Array.isArray(s.forms)||!Object.values(s.forms).every(v=>typeof v==='string'&&v.length<=12000))return false;
+ for(const k of ['diagnosis','finalRatings']){if(!s[k]||typeof s[k]!=='object'||!Object.values(s[k]).every(v=>RATINGS.includes(v)))return false;}
+ if(s.mapOrder&&(!Array.isArray(s.mapOrder)||s.mapOrder.length!==3||!s.mapOrder.every(a=>Array.isArray(a)&&a.length===3&&new Set(a).size===3&&a.every(v=>[0,1,2].includes(v)))))return false;
+ if(!s.evidence||typeof s.evidence!=='object'||!Object.values(s.evidence).every(v=>['evidence','context','misleading'].includes(v)))return false;
+ if(!Array.isArray(s.order)||s.order.length!==6||new Set(s.order).size!==6||!s.order.every(id=>SCENARIOS[s.event].evidence.some(c=>c.id===id)))return false;
+ for(const [k,n] of [['map',3],['records',2]]){if(!Array.isArray(s[k])||s[k].length!==n||!s[k].every(v=>v===null||(Number.isInteger(v)&&v>=0&&v<=2)))return false;}
+ if(!Number.isInteger(s.hints)||s.hints<0||s.hints>3||!Array.isArray(s.hintsUsed)||s.hintsUsed.length>3||!s.hintsUsed.every(n=>Number.isInteger(n)&&n>=1&&n<=4))return false;
+ if(!s.roles||typeof s.roles!=='object'||!Object.values(s.roles).every(v=>typeof v==='string'&&v.length<=40))return false;
+ if(!s.timer||!Number.isInteger(s.timer.phase)||s.timer.phase<0||s.timer.phase>2||!Number.isFinite(s.timer.remaining)||s.timer.remaining<0||s.timer.remaining>1200||!Number.isFinite(s.timer.end))return false;
+ if(!s.mission||!Number.isFinite(s.mission.duration)||s.mission.duration<0||s.mission.duration>3600||!Number.isFinite(s.mission.remaining)||s.mission.remaining<0||s.mission.remaining>3600||!Number.isFinite(s.mission.end))return false;
+ if(s.incoming&&(!EVENT_NAMES.includes(s.incoming.to)||typeof s.incoming.question!=='string'||s.incoming.question.length>900||typeof s.incoming.from!=='string'||s.incoming.from.length>60))return false;
+ return true;
+}
+let saved=loadJSON(STORAGE_KEY,null);
+let state=validState(saved)?saved:null;
+let teacher=loadJSON(TEACHER_KEY,{restored:[],sound:false,extra:false});
+if(!teacher||!Array.isArray(teacher.restored))teacher={restored:[],sound:false,extra:false};
+let view='home',selectedEvent='Resurrection',showSetup=false,feedback={},opened={},toastTimeout,modalReturnFocus=null;
+let evidenceChecked=false,pendingChallenge=null;
+let teacherTimer={phase:0,remaining:90,running:false,end:0,auto:false,extended:false};
+const params=new URLSearchParams(location.search);
+if(EVENT_NAMES.includes(params.get('event')))selectedEvent=params.get('event');
+if(params.get('classroom')==='1')view='teacher';
+function parseChallenge(){try{const raw=params.get('challenge');if(!raw||raw.length>8000)return;const str=decodeURIComponent(escape(atob(raw.replace(/-/g,'+').replace(/_/g,'/'))));const p=JSON.parse(str);if(p.type==='paschal-challenge'&&EVENT_NAMES.includes(p.to)&&typeof p.question==='string'&&p.question.length<=900&&typeof p.from==='string'&&p.from.length<=60){pendingChallenge=p;if(!state)selectedEvent=p.to;}}catch{}}
+parseChallenge();
+function writeState(){if(!state)return;state.savedAt=new Date().toISOString();try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));storageOK=true;}catch{storageOK=false;}$('[data-save-status]')?.replaceChildren(document.createTextNode(storageOK?'Saved on this device':'Not saved. Export your work.'));updateStorageBanner();}
+function saveTeacher(){try{localStorage.setItem(TEACHER_KEY,JSON.stringify(teacher));}catch{}}
+function updateStorageBanner(){const e=$('#storageWarning');if(e)e.hidden=storageOK;}
+function setForm(k,v){state.forms[k]=String(v).slice(0,12000);writeState();}
+function f(k){return esc(state?.forms?.[k]||'');}
+function textfield(key,title,placeholder='',min=0,rows=3){return `<label class="field mt"><span class="field-title">${title}</span><textarea data-field="${key}" rows="${rows}" maxlength="6000" placeholder="${esc(placeholder)}">${f(key)}</textarea><span class="word-counter" data-count-for="${key}">${words(state?.forms?.[key])} words${min?` · aim for at least ${min}`:''}</span></label>`;}
+function enough(key,n,label){if(words(state.forms[key])<n){fail(`Add a little more to “${label}” (at least ${n} words). This checks completeness, not the quality of your argument.`);$(`[data-field="${key}"]`)?.focus();return false;}return true;}
+function fail(message){feedback[state?.stage||0]={type:'error',message};renderRoom(false);$('#roomFeedback')?.scrollIntoView({behavior:'smooth',block:'center'});}
+function toast(message){const box=$('#toast');box.textContent=message;box.hidden=false;clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>box.hidden=true,4000);}
+function chime(){if(!teacher.sound)return;try{const A=window.AudioContext||window.webkitAudioContext;const ctx=new A();[523.25,659.25,783.99].forEach((freq,i)=>{const o=ctx.createOscillator(),g=ctx.createGain();o.type='sine';o.frequency.value=freq;g.gain.setValueAtTime(0,ctx.currentTime+i*.13);g.gain.linearRampToValueAtTime(.07,ctx.currentTime+i*.13+.02);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+i*.13+.65);o.connect(g);g.connect(ctx.destination);o.start(ctx.currentTime+i*.13);o.stop(ctx.currentTime+i*.13+.7);});setTimeout(()=>ctx.close(),1600);}catch{}}
+function header(){return `<header class="header"><div class="wrap header-inner"><button class="brand" data-action="home" aria-label="Return to archive home"><span class="brand-mark">${icon('cross')}</span><span class="brand-title">THE BROKEN CHAIN<span class="brand-sub">HRE4M1 / PASCHAL MYSTERY</span></span></button><div class="header-actions">${state?`<button class="btn subtle" data-action="notebook">${icon('book',true)}<span class="hide-mobile">Notebook</span></button>`:''}<button class="btn ${view==='teacher'?'primary':''}" data-action="teacher">${icon('screen',true)}<span>Classroom</span></button><button class="btn icon-btn subtle" data-action="help" aria-label="How to play">${icon('help',true)}</button></div></div></header>`;}
+function footer(){return `<footer class="footer"><div class="wrap"><p>HRE4M1 · Unit 1.5 · “If One Piece Is Missing”<br>Built for discussion. Evidence first, conclusions second.</p><div class="actions"><button class="btn subtle small" data-action="sources">Sources & teaching notes</button><button class="btn subtle small" data-action="privacy">Privacy & saving</button></div></div></footer>`;}
+function render(){const app=$('#app');app.innerHTML=header()+`<div id="storageWarning" class="storage-warning" ${storageOK?'hidden':''}>Browser saving is unavailable. Keep this tab open and export your report or backup before leaving.</div>`+(view==='home'?home():view==='teacher'?teacherPage():mission())+footer();bind();updateTimers();if(view==='game')bindRoom();}
