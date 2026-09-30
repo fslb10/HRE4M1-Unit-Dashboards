@@ -19,10 +19,10 @@ function bindCommon(){
   });
 }
 function bindGame(){
-  $("[data-step]").forEach(b=>b.addEventListener("click",()=>{const n=Number(b.dataset.step);if(!b.disabled){state.stage=n;save();render();window.scrollTo({top:0,behavior:"smooth"});}}));
-  $("[data-choice='stage1']").forEach(b=>b.addEventListener("click",()=>{
+  $$("[data-step]").forEach(b=>b.addEventListener("click",()=>{const n=Number(b.dataset.step);if(!b.disabled){state.stage=n;save();render();window.scrollTo({top:0,behavior:"smooth"});}}));
+  $$("[data-choice='stage1']").forEach(b=>b.addEventListener("click",()=>{
     state.stage1Choice=b.dataset.value; save();
-    $$("[data-choice='stage1']").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
+    $$$("[data-choice='stage1']").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));
   }));
   $$("[data-field]").forEach(el=>el.addEventListener("input",()=>{
     state[el.dataset.field]=el.value; save(); updateCounts();
