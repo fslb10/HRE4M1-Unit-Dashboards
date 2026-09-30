@@ -1,4 +1,5 @@
 name: Paschal simple challenge checks
+# Simplified four-stage classroom regression
 on:
   push:
     branches: [codex/paschal-simple-20260930]
