@@ -15,8 +15,8 @@ const http = require('node:http');
   const chainText='The first idea leads to the second because the missing event carries a specific theological meaning, and that changed meaning affects the Christian explanation that follows from it.';
   const evidenceText='This evidence directly supports our argument because it explains the theological meaning of the event and shows why removing it changes the larger Paschal Mystery.';
   const concession='The objection is partly fair because some teachings and events would still remain in the thought experiment.';
-  const correction='However, it misses the specific saving meaning of this event and how that meaning connects with the other parts of the Paschal Mystery.';
-  const synthesis='These two events connect with our missing event because the Paschal Mystery moves through sacrifice, victory, glory, and mission as one united saving action.';
+  const correction='However, it misses the specific saving meaning of this event and how that meaning connects with the other parts of the Paschal Mystery, especially salvation, hope, and the unity of the whole story.';
+  const synthesis='These two events connect with our missing event because the Paschal Mystery moves through sacrifice, victory, glory, and mission as one united saving action, so changing one part changes how the whole Christian story is understood.';
 
   for(const event of events){
     const ctx=await browser.newContext({viewport:{width:1280,height:900}});
