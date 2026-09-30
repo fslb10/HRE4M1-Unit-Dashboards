@@ -9,10 +9,10 @@ const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 const esc = v => String(v ?? "").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const wordCount = s => String(s||"").trim().split(/\s+/).filter(Boolean).length;
-let view = "home";
 let selectedEvent = "Resurrection";
 let toastTimer;
 let state = loadState();
+let view = state ? "game" : "home";
 
 function loadState(){
   try{
